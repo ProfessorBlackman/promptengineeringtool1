@@ -23,6 +23,7 @@ export type PromptDoc = {
     createdAt: Date | Timestamp
     updatedAt: Date | Timestamp
     metadata?: Record<string, unknown>
+    history?: Record<string, string>
 }
 
 export async function addPrompt(uid: string, data: Omit<PromptDoc, "createdAt" | "updatedAt">) {
@@ -40,6 +41,22 @@ export async function updatePrompt(uid: string, id: string, data: Partial<Prompt
     const {doc, updateDoc, serverTimestamp} = await import("firebase/firestore")
     const ref = doc(firestore, "users", uid, "prompts", id)
     await updateDoc(ref, {...data, updatedAt: serverTimestamp()})
+}
+
+export async function updatePromptWithHistory(uid: string, id: string, refined: string) {
+    const {doc, getDoc, updateDoc, serverTimestamp} = await import("firebase/firestore")
+    const ref = doc(firestore, "users", uid, "prompts", id)
+    const snap = await getDoc(ref)
+    if (!snap.exists()) throw new Error("Prompt not found")
+    const prev = snap.data() as PromptDoc
+    const now = new Date().toISOString()
+    const history = prev.history || {}
+    history[now] = prev.content
+    await updateDoc(ref, {
+        content: refined,
+        history,
+        updatedAt: serverTimestamp(),
+    })
 }
 
 export async function deletePrompt(uid: string, id: string) {

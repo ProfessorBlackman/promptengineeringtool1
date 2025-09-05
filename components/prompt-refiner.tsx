@@ -12,7 +12,8 @@ import { Progress } from "@/components/ui/progress"
 import { Sparkles, RefreshCw, CheckCircle, AlertCircle, Lightbulb, Settings } from "lucide-react"
 import LLMSelectorModal from "@/components/llm-selector-modal"
 import { useAuth } from "@/components/auth-provider"
-import { listPrompts, type LLMDoc, type APIKeyDoc } from "@/lib/db"
+import { listPrompts, type LLMDoc, type APIKeyDoc, updatePromptWithHistory } from "@/lib/db"
+import { useToast } from "@/hooks/use-toast"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
@@ -50,6 +51,7 @@ export default function PromptRefiner() {
   const [promptsLoading, setPromptsLoading] = useState(false)
   const [promptsError, setPromptsError] = useState<string | null>(null)
   const [showRefinedModal, setShowRefinedModal] = useState(false)
+  const { toast } = useToast()
 
   useEffect(() => {
     if (!user) return
@@ -152,6 +154,20 @@ export default function PromptRefiner() {
     if (score >= 80) return "text-green-600"
     if (score >= 60) return "text-yellow-600"
     return "text-red-600"
+  }
+
+  // Save refined prompt logic
+  const saveRefinedPrompt = async () => {
+    if (!user || !selectedPrompt || !analysisResult?.refinedPrompt) {
+      toast({ title: "Cannot save", description: "Select a prompt and run analysis first.", variant: "destructive" })
+      return
+    }
+    try {
+      await updatePromptWithHistory(user.uid, selectedPrompt.id, analysisResult.refinedPrompt)
+      toast({ title: "Prompt updated", description: "Refined prompt saved and previous version archived." })
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message || "Failed to save refined prompt.", variant: "destructive" })
+    }
   }
 
   return (
@@ -308,6 +324,17 @@ export default function PromptRefiner() {
                   </span>
                 </div>
                 <Progress value={analysisResult.score} className="h-2 mb-4" />
+                {/* Save Refined Prompt Button */}
+                {selectedPrompt && analysisResult.refinedPrompt && (
+                  <Button
+                    variant="outline"
+                    className="mb-4 w-full"
+                    onClick={saveRefinedPrompt}
+                    disabled={isAnalyzing}
+                  >
+                    Save Refined Prompt
+                  </Button>
+                )}
                 <Tabs defaultValue="suggestions" className="w-full">
                   <TabsList className="grid w-full grid-cols-3">
                     <TabsTrigger value="suggestions">Suggestions</TabsTrigger>
