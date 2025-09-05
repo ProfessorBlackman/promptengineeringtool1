@@ -46,6 +46,28 @@ export default function PromptLibrary({ onSelectPrompt }: PromptLibraryProps) {
 
   const categories = useMemo(() => ["all", ...new Set(prompts.map((p) => p.category))], [prompts])
 
+  // Delete confirmation dialog logic
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [pendingDeletePrompt, setPendingDeletePrompt] = useState<Prompt | null>(null)
+
+  const requestDeletePrompt = (prompt: Prompt) => {
+    setPendingDeletePrompt(prompt)
+    setIsDeleteDialogOpen(true)
+  }
+
+  const confirmDeletePrompt = async () => {
+    if (pendingDeletePrompt) {
+      await handleDeletePrompt(pendingDeletePrompt.id)
+      setIsDeleteDialogOpen(false)
+      setPendingDeletePrompt(null)
+    }
+  }
+
+  const cancelDeletePrompt = () => {
+    setIsDeleteDialogOpen(false)
+    setPendingDeletePrompt(null)
+  }
+
   const filteredPrompts = prompts.filter((prompt) => {
     const matchesSearch =
       prompt.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -207,7 +229,7 @@ export default function PromptLibrary({ onSelectPrompt }: PromptLibraryProps) {
                   <Button variant="ghost" size="sm" onClick={() => handleCopyPrompt(prompt.content)}>
                     <Copy className="h-4 w-4" />
                   </Button>
-                  <Button variant="ghost" size="sm" onClick={() => handleDeletePrompt(prompt.id)}>
+                  <Button variant="ghost" size="sm" onClick={() => requestDeletePrompt(prompt)}>
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
@@ -315,6 +337,22 @@ export default function PromptLibrary({ onSelectPrompt }: PromptLibraryProps) {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete Prompt</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete the prompt "{pendingDeletePrompt?.title}"? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2 mt-4">
+            <Button variant="outline" onClick={cancelDeletePrompt}>Cancel</Button>
+            <Button variant="destructive" onClick={confirmDeletePrompt}>Delete</Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
