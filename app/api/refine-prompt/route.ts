@@ -96,36 +96,58 @@ export async function POST(request: NextRequest) {
         }
 
         // Construct the refining prompt
-        const systemPrompt = `You are an expert prompt engineer. Your task is to analyze and refine the given prompt to make it more effective, clear, and specific. 
+        const systemPrompt = `You are an expert prompt engineer with deep knowledge of AI interaction patterns, cognitive psychology, and effective communication strategies. Your task is to analyze and refine user-provided prompts to maximize their effectiveness, clarity, and reliability.
 
-Please analyze the prompt and provide:
-1. A refined version of the prompt that is more effective
-2. A score from 1-100 indicating the quality of the original prompt
-3. Specific suggestions for improvement with explanations
-4. Strengths of the original prompt
-5. Areas that need improvement
+## Analysis Framework
+Evaluate each prompt across these dimensions:
+- **Clarity**: How clear and unambiguous are the instructions?
+- **Specificity**: Are the requirements and desired outputs well-defined?
+- **Structure**: Is the prompt logically organized and easy to follow?
+- **Completeness**: Does it include all necessary context and constraints?
+- **Effectiveness**: Will it reliably produce the intended outcomes?
+- **Scalability**: How well will it work across different scenarios?
 
-${extraInstructions ? `Additional instructions: ${extraInstructions}` : ''}
+## Your Response Requirements
+Provide a comprehensive analysis in valid JSON format with the following structure:
 
-Format your response as JSON with the following structure:
 {
-  "score": number,
-  "refinedPrompt": "string",
+  "score": number, // 1-100 based on overall prompt quality
+  "refinedPrompt": "string", // Your improved version
   "suggestions": [
     {
-      "type": "clarity" | "specificity" | "effectiveness" | "structure",
-      "title": "string",
-      "description": "string",
-      "before": "string",
-      "after": "string", 
-      "impact": "high" | "medium" | "low"
+      "category": "clarity" | "specificity" | "structure" | "completeness" | "effectiveness" | "scalability",
+      "title": "string", // Brief, actionable title
+      "description": "string", // Detailed explanation of the issue and solution
+      "before": "string", // Specific problematic text from original
+      "after": "string", // Your improved version
+      "impact": "high" | "medium" | "low", // Expected improvement impact
+      "rationale": "string" // Why this change improves the prompt
     }
   ],
-  "strengths": ["string"],
-  "weaknesses": ["string"]
-}`
+  "strengths": ["string"], // What the original prompt does well
+  "areas_for_improvement": ["string"], // Key weaknesses identified
+  "implementation_tips": ["string"] // Practical advice for using the refined prompt
+}
 
-        const userMessage = `Please analyze and refine this prompt:\n\n${prompt}`
+## Scoring Criteria
+- 90-100: Exceptional - Clear, specific, well-structured, comprehensive
+- 80-89: Strong - Minor improvements needed
+- 70-79: Good - Several areas for enhancement
+- 60-69: Fair - Significant improvements required
+- 50-59: Poor - Major restructuring needed
+- Below 50: Very poor - Fundamental issues present
+
+## Guidelines
+- Focus on actionable, specific improvements
+- Explain the reasoning behind each suggestion
+- Maintain the original intent while enhancing effectiveness
+- Consider edge cases and potential failure modes
+- Prioritize changes by impact potential
+
+${extraInstructions ? `\n## Additional Context\n${extraInstructions}` : ''}`
+
+        const userMessage = `Please analyze and refine the following prompt to enhance its clarity, specificity, structure,completeness, effectiveness, and scalability. Provide a detailed critique along with a refined version of the prompt.' +
+            '{"intent": ${llmData.description},"prompt": ${prompt}}`
 
         // Make request to LLM API
         const refinedResult = await makeRequestToLLM(llmData, apiKeyData, systemPrompt, userMessage)

@@ -8,6 +8,7 @@ export type PromptDoc = {
     description?: string
     category: string
     tags: string[]
+    is_system_prompt: boolean
     parameters: Array<{
         name: string
         type: "text" | "number" | "select"

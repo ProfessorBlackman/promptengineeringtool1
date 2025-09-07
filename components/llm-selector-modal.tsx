@@ -46,7 +46,7 @@ export default function LLMSelectorModal({
   const [showAddLLMModal, setShowAddLLMModal] = useState(false)
   const [showAddAPIKeyModal, setShowAddAPIKeyModal] = useState(false)
 
-  // Fetch data when modal opens
+  // Fetch data when the modal opens
   useEffect(() => {
     if (!open || !user) return
 
