@@ -25,6 +25,7 @@ export type PromptDoc = {
     updatedAt: Date | Timestamp
     metadata?: Record<string, unknown>
     history?: Record<string, string>
+    latestTestScore?: number | null // New field for storing latest test score
 }
 
 export async function addPrompt(uid: string, data: Omit<PromptDoc, "createdAt" | "updatedAt">) {

@@ -11,7 +11,7 @@ import {Badge} from "@/components/ui/badge"
 import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs"
 import {Play, Clock, Settings, Target} from "lucide-react"
 import LLMSelectorModal from "@/components/llm-selector-modal"
-import {type APIKeyDoc, listPrompts, type LLMDoc} from "@/lib/db"
+import {type APIKeyDoc, listPrompts, type LLMDoc, updatePrompt} from "@/lib/db"
 import {useAuth} from "@/components/auth-provider";
 import remarkGfm from "remark-gfm"
 import {Prism as SyntaxHighlighter} from "react-syntax-highlighter"
@@ -94,6 +94,9 @@ export default function PromptTester() {
     const [prompts, setPrompts] = useState<Prompt[]>([])
     const [apiKey, setApiKey] = useState<(APIKeyDoc & { id: string }) | null>(null)
     const {user} = useAuth()
+    const [saveScoreLoading, setSaveScoreLoading] = useState(false)
+    const [saveScoreSuccess, setSaveScoreSuccess] = useState(false)
+    const [saveScoreError, setSaveScoreError] = useState<string>("")
 
     // Fetch prompts from Firestore
     useEffect(() => {
@@ -158,6 +161,21 @@ export default function PromptTester() {
         if (score >= 80) return "default"
         if (score >= 60) return "secondary"
         return "destructive"
+    }
+
+    const handleSaveScore = async () => {
+        if (!selectedPrompt || !currentTest || !user) return
+        setSaveScoreLoading(true)
+        setSaveScoreSuccess(false)
+        setSaveScoreError("")
+        try {
+            await updatePrompt(user.uid, selectedPrompt.id, { latestTestScore: currentTest.score })
+            setSaveScoreSuccess(true)
+        } catch (err: any) {
+            setSaveScoreError("Failed to save score")
+        } finally {
+            setSaveScoreLoading(false)
+        }
     }
 
     return (
@@ -282,6 +300,7 @@ export default function PromptTester() {
                     </CardHeader>
                     <CardContent>
                         {currentTest ? (
+                            <>
                             <Tabs defaultValue="output" className="w-full">
                                 <TabsList className="grid w-full grid-cols-2">
                                     <TabsTrigger value="output">Output</TabsTrigger>
@@ -292,32 +311,35 @@ export default function PromptTester() {
                                         <Label>Strengths</Label>
                                         <div
                                             className="p-3 bg-gray-50 dark:bg-gray-800 rounded-md text-sm max-h-80 overflow-y-auto">
+                                            <ul>
                                             {currentTest.output.strengths.map((strength, idx) => (
-                                                <Badge key={idx} variant="default" className="mr-1 mb-1 dark:bg-blue-900">
+                                                <li key={idx} className="mr-1 mb-1 dark:bg-blue-900">
                                                     <MarkdownRenderer content={strength} isHighlighted={false}
                                                                       proseSize="sm" className="text-sm mr-1 mb-1 text-gray-700 dark:text-gray-400"/>
-                                                </Badge>
-                                            ))}
+                                                </li>
+                                            ))}</ul>
                                         </div>
                                         <Label>Issues</Label>
                                         <div
                                             className="p-3 bg-gray-50 dark:bg-gray-800 rounded-md text-sm max-h-80 overflow-y-auto">
+                                            <ul>
                                             {currentTest.output.issues.map((issue, idx) => (
-                                                <Badge key={idx} variant="destructive" className="mr-1 mb-1 dark:bg-red-900">
+                                                <li key={idx} className="mr-1 mb-1 dark:bg-red-900">
                                                     <MarkdownRenderer content={issue} isHighlighted={false}
                                                                       proseSize="sm" className="text-sm mr-1 mb-1 text-gray-700 dark:text-gray-400"/>
-                                                </Badge>
-                                            ))}
+                                                </li>
+                                            ))}</ul>
                                         </div>
                                         <Label>Suggestions</Label>
                                         <div
                                             className="p-3 bg-gray-50 dark:bg-gray-800 rounded-md text-sm max-h-80 overflow-y-auto">
+                                            <ul>
                                             {currentTest.output.suggestions.map((suggestion, idx) => (
-                                                <Badge key={idx} variant="secondary" className="mr-1 mb-1 dark:bg-gray-900">
+                                                <li key={idx} className="mr-1 mb-1 dark:bg-gray-900">
                                                     <MarkdownRenderer content={suggestion} isHighlighted={false}
                                                                       proseSize="sm" className="text-sm mr-1 mb-1 text-gray-700 dark:text-gray-400"/>
-                                                </Badge>
-                                            ))}
+                                                </li>
+                                            ))}</ul>
                                         </div>
                                     </div>
                                     <div className="flex justify-between items-center text-xs text-gray-500">
@@ -326,6 +348,22 @@ export default function PromptTester() {
                                     </div>
                                 </TabsContent>
                                 <TabsContent value="score" className="space-y-4">
+                                    <div className="mt-4 flex flex-col gap-2">
+                                <Button
+                                    onClick={handleSaveScore}
+                                    disabled={saveScoreLoading || !selectedPrompt || !currentTest}
+                                    variant="outline"
+                                    className="w-full"
+                                >
+                                    {saveScoreLoading ? "Saving..." : "Save Score to Prompt"}
+                                </Button>
+                                {saveScoreSuccess && (
+                                    <p className="text-green-600 text-sm text-center">Score saved!</p>
+                                )}
+                                {saveScoreError && (
+                                    <p className="text-red-600 text-sm text-center">{saveScoreError}</p>
+                                )}
+                            </div>
                                     <div className="flex justify-between items-center">
                                         <Label>Score</Label>
                                         <Badge
@@ -341,6 +379,7 @@ export default function PromptTester() {
                                     </div>
                                 </TabsContent>
                             </Tabs>
+                            </>
                         ) : (
                             <div className="text-center py-8 text-gray-500">
                                 <Target className="h-12 w-12 mx-auto mb-4 opacity-50"/>
